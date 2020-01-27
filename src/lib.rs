@@ -181,34 +181,83 @@ where
     }
 }
 
-impl<S> ops::Add<Vector4<S>> for Vector4<S>
+// impl<S> ops::Mul<Vector4<S>> for Vector4<S>
+// where
+//     S: ops::Mul<Output = S>
+// {
+//     type Output = Self;
+// 
+//     fn mul(self, other: Vector4<S>) -> Self {
+//         println!("unoptimized vector multiply");
+//         Vector4 {
+//             x: self.x * other.x,
+//             y: self.y * other.y,
+//             z: self.z * other.z,
+//             w: self.w * other.w,
+//         }
+//     }
+// }
+// 
+// impl<S> ops::Mul<S> for Vector4<S>
+// where
+//     S: ops::Mul<Output = S> + Copy
+// {
+//     type Output = Self;
+// 
+//     fn mul(self, other: S) -> Self {
+//         println!("unoptimized scalar multiply");
+//         Vector4 {
+//             x: self.x * other,
+//             y: self.y * other,
+//             z: self.z * other,
+//             w: self.w * other,
+//         }
+//     }
+// }
+
+impl<S> ops::Mul<Vector4<S>> for Vector4<S>
 where
     [S; 4]: SimdArray,
-    Simd<[S; 4]>: ops::Add<Output = Simd<[S; 4]>> + From<Vector4<S>> + Into<Vector4<S>>,
+    Simd<[S; 4]>: ops::Mul<Output = Simd<[S; 4]>>,
+    Vector4<S>: From<Simd<[S; 4]>> + Into<Simd<[S; 4]>>,
 {
     type Output = Self;
 
-    fn add(self, other: Vector4<S>) -> Self {
-        println!("optimized addition");
+    fn mul(self, other: Vector4<S>) -> Self {
+        println!("optimized vector multiply");
         let lhs: Simd<[S; 4]> = self.into();
         let rhs: Simd<[S; 4]> = other.into();
-        (lhs + rhs).into()
+        (lhs * rhs).into()
     }
 }
 
 impl<S> ops::Mul<S> for Vector4<S>
 where
     [S; 4]: SimdArray,
-    Simd<[S; 4]>: ops::Mul<S> + From<Vector4<S>> + Into<Vector4<S>>,
+    Simd<[S; 4]>: ops::Mul<S, Output = Simd<[S; 4]>>,
+    Vector4<S>: From<Simd<[S; 4]>> + Into<Simd<[S; 4]>>,
 {
     type Output = Self;
 
     fn mul(self, other: S) -> Self {
-        println!("optimized multiply");
+        println!("optimized scalar multiply");
         let lhs: Simd<[S; 4]> = self.into();
-        //let out: Simd<[S; 4]> = lhs * other;
-        let out: () = lhs * other;
-        out.into()
+        (lhs * other).into()
+    }
+}
+
+impl<S> ops::Neg for Vector4<S>
+where
+    [S; 4]: SimdArray,
+    Simd<[S; 4]>: ops::Neg<Output = Simd<[S; 4]>>,
+    Vector4<S>: From<Simd<[S; 4]>> + Into<Simd<[S; 4]>>,
+{
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        println!("optimized negation");
+        let a: Simd<[S; 4]> = self.into();
+        (-a).into()
     }
 }
 
@@ -224,10 +273,23 @@ mod vector_simd_tests {
     }
 
     #[test]
-    fn test_scalar_multiply_simd() {
+    fn test_scalar_multiply_trait_simd() {
         let vec_a: Vector4<f32> = Vector4::new(1.0, 2.0, 3.0, 4.0);
         let b: f32 = 10.0;
-        println("{:?}", vec_a * b);
+        println!("{:?}", vec_a * b);
+    }
+
+    #[test]
+    fn test_vector_multiply_trait_simd() {
+        let vec_a: Vector4<f32> = Vector4::new(1.0, 2.0, 3.0, 4.0);
+        let vec_b: Vector4<f32> = Vector4::new(2.0, 2.0, 2.0, 2.0);
+        println!("{:?}", vec_a * vec_b);
+    }
+
+    #[test]
+    fn test_negation_simd() {
+        let vec: Vector4<f32> = Vector4::new(1.0, 2.0, 3.0, 4.0);
+        println!("{:?}", -vec);
     }
 
     macro_rules! test_into_from {
